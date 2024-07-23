@@ -2,7 +2,7 @@ apply plugin: "java"
 
 version '1.0'
 
-sourceSets.main.java.srcDirs = ["src"]
+sourceSets.main.java.srcDirs = ["jnss/src"]
 
 repositories{
     mavenCentral()
@@ -26,8 +26,9 @@ ext{
 
 //java 8 backwards compatibility flag
 allprojects{
-    tasks.withType(JavaCompile){
-        options.compilerArgs.addAll(['--release', '8'])
+    tasks.withType(JavaCompile).tap {
+        configureEach {options.compilerArgs.addAll(['--release', '8'])
+        }
     }
 }
 
@@ -39,7 +40,7 @@ dependencies{
 }
 
 //force arc version
-configurations.all{
+configurations.configureEach {
     resolutionStrategy.eachDependency { details ->
         if(details.requested.group == 'com.github.Anuken.Arc'){
             details.useVersion "$mindustryVersion"
@@ -47,11 +48,11 @@ configurations.all{
     }
 }
 
-task jarAndroid{
+tasks.register('jarAndroid') {
     dependsOn "jar"
 
     doLast{
-        if(!sdkRoot || !new File(sdkRoot).exists()) throw new GradleException("No valid Android SDK found. Ensure that ANDROID_HOME is set to your Android SDK directory.");
+        if(!sdkRoot || !new File(sdkRoot as String).exists()) throw new GradleException("No valid Android SDK found. Ensure that ANDROID_HOME is set to your Android SDK directory.");
 
         def platformRoot = new File("$sdkRoot/platforms/").listFiles().sort().reverse().find{ f -> new File(f, "android.jar").exists()}
 
@@ -79,12 +80,12 @@ jar{
         include "mod.hjson"
     }
 
-    from("assets/"){
+    from("jnss/assets/"){
         include "**"
     }
 }
 
-task deploy(type: Jar){
+tasks.register('deploy', Jar) {
     dependsOn jarAndroid
     dependsOn jar
     archiveFileName = "${base.archivesBaseName}.jar"
